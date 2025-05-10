@@ -2,7 +2,7 @@ INCLUDE Irvine32.inc
 .data
     
     welcomeMsg byte "Pacman",0
-
+    inputBuffer byte 20 dup(0)
 
 .code
 main PROC
@@ -25,6 +25,12 @@ main PROC
 
     mov eax, white
     call SetTextColor
+
+    mov eax, 5000
+    call Delay
+
+    call Clrscr
+
 ;---------------------------------------
     exit
 main ENDP
