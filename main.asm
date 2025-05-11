@@ -1,15 +1,22 @@
 INCLUDE Irvine32.inc
+INCLUDE macros.inc
+INCLUDELIb winmm.lib
 
+;Column Center Formula : (Number of Columns - Length of String)/2
+;Row Center Formula : Number of Rows / 2
+;2623 -> 2663-> 2 blocks then 6 blocks then 6 blocks then 3 blocks
 NUM_COLS = 120
 NUM_ROWS = 30
+
+TITLE MASM PlaySound
+
+PlaySound PROTO,
+pszSoundName:PTR BYTE,
+hmod:DWORD,
+fdwSound:DWORD
+
 .data
     
-    ;Column Center Formula : (Number of Columns - Length of String)/2
-    ;Row Center Formula : Number of Rows / 2
-    ;2623 -> 2663-> 2 blocks then 6 blocks then 6 blocks then 3 blocks
-
-
-
     ;----------------------------------------
     ;Maze Level 1
     ;----------------------------------------
@@ -56,6 +63,19 @@ NUM_ROWS = 30
     colCenter   db  0
     rowCenter   db  0
 
+    ;----------------------------------------
+    ;Music
+    ;----------------------------------------
+    musicIntro db "pacman_beginning.wav",0
+    musicChomp db "pacman_chomp.wav",0
+    musicDeath db "pacman_death.wav",0
+    musicFruit db "pacman_eatfruit.wav",0
+    tempMusic db " ",0
+    SND_FILENAME DWORD 00020001h
+    SND_ASYNC DWORD 00000001h
+    SND_LOOP DWORD 00000008h
+    SND_FLAGS DWORD 20009h ;OR SND_ASYNC and SND_FILENAME and SND_LOOP
+
 .code
 main PROC
     
@@ -63,20 +83,129 @@ main PROC
 
     call Clrscr
 
+    ;Play Intro Music
+    INVOKE PlaySound, OFFSET musicIntro, 0, SND_FLAGS
+
     ;Welcome Screen
 
     call WelcomeScreen
 
     ;Reset Screen after delay
-    
-    mov eax, 1000 ;Set to 1 second for debugging, change to 3 later
-    call Delay
     call Clrscr
 
     ;Display Menu
-    ;call MenuScreen
+    call MenuScreen
 
     ;Draw Maze
+    call CreateLevel1
+
+    ;wait msg
+    call WaitMsg
+
+    ;Stop Music
+    INVOKE PlaySound, 0, 0, 0
+    exit
+main ENDP
+
+;---------------------------------------
+;Welcome Screen Proc
+;---------------------------------------
+WelcomeScreen PROC
+    
+    ;Perform calculations to find center
+    mov eax, NUM_COLS
+    sub eax, 7 ; Length of "Pacman"
+    mov edx, 0
+    mov ecx, 2
+    div ecx
+    mov colCenter, al
+    mov eax, NUM_ROWS
+    mov edx, 0
+    mov ecx, 2
+    div ecx
+    mov rowCenter, al
+
+    ;Move cursor to the center of the screen and display screen
+    mov dl, colCenter
+    mov dh, rowCenter
+    call GoToXY
+
+    mov eax, yellow
+    call SetTextColor
+
+    mov edx, offset welcomeMsg
+    call WriteString
+    call crlf
+
+    mov eax, white
+    call SetTextColor
+
+    mov eax, 3000 ;Set to 1 second for debugging, change to 3 later
+    call Delay
+    ret
+WelcomeScreen ENDP
+
+;---------------------------------------
+;Menu Screen Proc
+;---------------------------------------
+MenuScreen PROC
+
+    mov eax, NUM_COLS
+    sub eax, 13 ; Length of "1. Start Game"
+    sub eax, 5 ;Adjust 
+    mov ecx, 2
+    mov edx, 0
+    div ecx
+    mov colCenter, al
+    ;Move row center up by 2
+    movzx eax, rowCenter
+    sub eax, 2
+    mov rowCenter, al
+    ;No need to recalculate middle row
+    mov dl, colCenter
+    mov dh, rowCenter
+    call GoToXY
+    mov edx, offset menuMsg
+    call writestring
+    mov dl, colCenter
+    mov dh, rowCenter
+    add dh,1
+    call GoToXY
+    mov edx, offset menuMsg2
+    call writestring
+    mov dl, colCenter
+    mov dh, rowCenter
+    add dh,2
+    call GoToXY
+    mov edx, offset menuMsg3
+    call writestring
+    mov dl, colCenter
+    mov dh, rowCenter
+    add dh,3
+    call GoToXY
+    mov edx, offset menuMsg4
+    call writestring
+    mov dl, colCenter
+    mov dh, rowCenter
+    add dh,4
+    call GoToXY
+    mov edx, offset menuMsg5
+    call writestring
+    ;Wait Msg only for temporary debugging 
+    mov dl, colCenter
+    mov dh, rowCenter
+    add dh,5
+    call GoToXY
+    call WaitMsg
+
+    ret
+MenuScreen ENDP
+
+;---------------------------------------
+;Create Level 1
+;---------------------------------------
+CreateLevel1 PROC
+
     mov dx, 0
     call GoToXY
     call Clrscr
@@ -170,102 +299,20 @@ main PROC
     mov edx, offset maze30
     call writestring
     call crlf
-
-    
-
-    exit
-main ENDP
-
-;---------------------------------------
-;Welcome Screen Proc
-;---------------------------------------
-WelcomeScreen PROC
-    
-    ;Perform calculations to find center
-    mov eax, NUM_COLS
-    sub eax, 7 ; Length of "Pacman"
-    mov edx, 0
-    mov ecx, 2
-    div ecx
-    mov colCenter, al
-    mov eax, NUM_ROWS
-    mov edx, 0
-    mov ecx, 2
-    div ecx
-    mov rowCenter, al
-
-    ;Move cursor to the center of the screen and display screen
-    mov dl, colCenter
-    mov dh, rowCenter
-    call GoToXY
-
-    mov eax, yellow
-    call SetTextColor
-
-    mov edx, offset welcomeMsg
-    call WriteString
-    call crlf
-
-    mov eax, white
-    call SetTextColor
     ret
-WelcomeScreen ENDP
+CreateLevel1 ENDP   
 
 ;---------------------------------------
-;Menu Screen Proc
+;Initialize Grid
 ;---------------------------------------
-MenuScreen PROC
-
-    mov eax, NUM_COLS
-    sub eax, 13 ; Length of "1. Start Game"
-    sub eax, 5 ;Adjust 
-    mov ecx, 2
-    mov edx, 0
-    div ecx
-    mov colCenter, al
-    ;Move row center up by 2
-    movzx eax, rowCenter
-    sub eax, 2
-    mov rowCenter, al
-    ;No need to recalculate middle row
-    mov dl, colCenter
-    mov dh, rowCenter
-    call GoToXY
-    mov edx, offset menuMsg
-    call writestring
-    mov dl, colCenter
-    mov dh, rowCenter
-    add dh,1
-    call GoToXY
-    mov edx, offset menuMsg2
-    call writestring
-    mov dl, colCenter
-    mov dh, rowCenter
-    add dh,2
-    call GoToXY
-    mov edx, offset menuMsg3
-    call writestring
-    mov dl, colCenter
-    mov dh, rowCenter
-    add dh,3
-    call GoToXY
-    mov edx, offset menuMsg4
-    call writestring
-    mov dl, colCenter
-    mov dh, rowCenter
-    add dh,4
-    call GoToXY
-    mov edx, offset menuMsg5
-    call writestring
-    ;Wait Msg only for temporary debugging 
-    mov dl, colCenter
-    mov dh, rowCenter
-    add dh,5
-    call GoToXY
-    call WaitMsg
+LoadMazeToGrid PROC
+    lea esi, maze1          ; Start with the first maze row, contiguous memory so dont need to change maze
+    lea edi, grid           ; Point to the start of the grid
+    mov ecx, NUM_ROWS * NUM_COLS       ; Loop over each row
 
     ret
-MenuScreen ENDP
+LoadMazeToGrid ENDP
+
 
 END main
 
