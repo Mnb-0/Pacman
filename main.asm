@@ -16,7 +16,136 @@ hmod:DWORD,
 fdwSound:DWORD
 
 .data
-    
+
+;----------------------------------------
+; Music Constants
+;----------------------------------------
+musicIntro     db "pacman_beginning.wav", 0
+musicChomp     db "pacman_chomp.wav", 0
+musicDeath     db "pacman_death.wav", 0
+musicFruit     db "pacman_eatfruit.wav", 0
+tempMusic      db " ", 0
+
+; Sound Flags
+SND_FILENAME   DWORD 00020001h  ; Sound file name flag
+SND_ASYNC      DWORD 00000001h  ; Asynchronous flag
+SND_LOOP       DWORD 00000008h  ; Loop flag
+SND_FLAGS      DWORD 20009h     ; Combined flags (SND_FILENAME OR SND_ASYNC OR SND_LOOP)
+
+;----------------------------------------
+; File Constants
+;----------------------------------------
+fileName       db "highscores.txt", 0
+filetemp       db "temp.txt", 0
+fileHandle     HANDLE ?
+
+;----------------------------------------
+; Game Constants
+;----------------------------------------
+; Speeds for different levels
+L1_Speed       DWORD 150
+L2_Speed       DWORD 125
+L3_Speed       DWORD 100
+
+; Characters for game elements
+wall           db "#"
+coin           db "."
+space          db " "
+pacman         db "X"
+
+; Ghost Symbols
+G1             DB "!"
+G2             DB "@"
+G3             DB "$"
+G4             DB "%"
+G5             DB "^"
+
+;----------------------------------------
+; Grid and Buffer Definitions
+;----------------------------------------
+grid           db NUM_COLS * NUM_ROWS dup(0)   ; Grid to store the maze
+inputBuffer    db 20 dup(0)                     ; Input buffer for user input
+welcomeMsg     db "Pacman", 0                   ; Welcome message
+menuMsg        db "1. Start Game", 0            ; Menu option 1
+menuMsg2       db "2. Select Level", 0          ; Menu option 2
+menuMsg3       db "3. Instructions", 0          ; Menu option 3
+menuMsg4       db "4. High Scores", 0           ; Menu option 4
+menuMsg5       db "5. Exit", 0                  ; Menu option 5
+instructionsMsg db "Instructions: Use arrow keys to move Pacman. Eat all the dots and avoid the ghosts!", 0
+highScoresMsg  db "High Scores: ", 0            ; High Scores message
+
+; Centering positions
+colCenter      db 0
+rowCenter      db 0
+
+; Game State Data
+lives          db 3                            ; Player lives
+score          dd 0                            ; Player score
+
+; Player movement and state
+nameInputBuffer DB 20 dup(0)                   ; Buffer for player name input
+buffer         db 255 DUP(0)                   ; General buffer
+scoreBuffer    db 255 DUP(0)                   ; Buffer for score input
+
+playerDirection    db 1                        ; Movement direction (0: Down, 1: Up, 2: Left, 3: Right)
+playerMovePossible db 1                        ; If player can move
+
+; Ghosts' Movement Handlers
+G1Direction   db 1
+G1MovePossible db 1
+
+G2Direction   db 1
+G2MovePossible db 1
+
+G3Direction   db 1
+G3MovePossible db 1
+
+G4Direction   db 1
+G4MovePossible db 1
+
+G5Direction   db 1
+G5MovePossible db 1
+
+;----------------------------------------
+; Ghosts' Status and Movement
+;----------------------------------------
+G1Status      db 1                            ; Ghost 1 status
+G2Status      db 1                            ; Ghost 2 status
+G3Status      db 1                            ; Ghost 3 status
+G4Status      db 1                            ; Ghost 4 status
+G5Status      db 1                            ; Ghost 5 status
+
+levelIndicator db 1                           ; Current level
+GameStateHandler db 1                         ; Game state handler (e.g., paused, running)
+
+;----------------------------------------
+; Player Position and Status
+;----------------------------------------
+xPos           db 0                            ; Player X position
+yPos           db 0                            ; Player Y position
+playerStatus   db 1                            ; Player status (1 = alive, 0 = dead)
+inputChar      db ?                            ; Last input character
+
+;----------------------------------------
+; Ghost Positions (Initial)
+;----------------------------------------
+; Level 1 Ghost Positions
+xG1            DB 10
+yG1            DB 10
+xG2            DB 10
+yG2            DB 10
+
+; Level 2 Ghost Positions
+xG3            DB 10
+yG3            DB 10
+
+; Level 3 Ghost Positions
+xG4            DB 10
+yG4            DB 10
+xG5            DB 10
+yG5            DB 10
+
+        
     ;----------------------------------------
     ;Maze Level 1
     ;----------------------------------------
@@ -52,55 +181,31 @@ fdwSound:DWORD
     maze30 db "------------------------------------------------------------------------------------------------------------------------",0
 
 
-    grid        db  NUM_COLS * NUM_ROWS dup(0)
-    inputBuffer db  20 dup(0)
-    welcomeMsg  db  "Pacman",0
-    menuMsg     db  "1. Start Game",0
-    menuMsg2    db  "2. Select Level",0
-    menuMsg3    db  "3. Instructions",0
-    menuMsg4    db  "4. High Scores",0
-    menuMsg5    db  "5. Exit",0
-    colCenter   db  0
-    rowCenter   db  0
-
-    ;----------------------------------------
-    ;Music
-    ;----------------------------------------
-    musicIntro db "pacman_beginning.wav",0
-    musicChomp db "pacman_chomp.wav",0
-    musicDeath db "pacman_death.wav",0
-    musicFruit db "pacman_eatfruit.wav",0
-    tempMusic db " ",0
-    SND_FILENAME DWORD 00020001h
-    SND_ASYNC DWORD 00000001h
-    SND_LOOP DWORD 00000008h
-    SND_FLAGS DWORD 20009h ;OR SND_ASYNC and SND_FILENAME and SND_LOOP
-
 .code
 main PROC
     
     ;Initialize screen
-
     call Clrscr
 
-    ;Play Intro Music
-    INVOKE PlaySound, OFFSET musicIntro, 0, SND_FLAGS
-
     ;Welcome Screen
+    call displayWelcome
 
-    call WelcomeScreen
+    ;Wait msg for debugging
+    mov dl, colCenter
+    sub dl, 10
+    mov dh, 29
+    call GoToXY
+    call WaitMsg
 
     ;Reset Screen after delay
     call Clrscr
 
     ;Display Menu
-    call MenuScreen
+    call displayMenu
 
     ;Draw Maze
     call CreateLevel1
 
-    ;wait msg
-    call WaitMsg
 
     ;Stop Music
     INVOKE PlaySound, 0, 0, 0
@@ -110,8 +215,11 @@ main ENDP
 ;---------------------------------------
 ;Welcome Screen Proc
 ;---------------------------------------
-WelcomeScreen PROC
+displayWelcome PROC
     
+    ;Play Intro Music
+    INVOKE PlaySound, OFFSET musicIntro, 0, SND_FLAGS
+
     ;Perform calculations to find center
     mov eax, NUM_COLS
     sub eax, 7 ; Length of "Pacman"
@@ -140,15 +248,15 @@ WelcomeScreen PROC
     mov eax, white
     call SetTextColor
 
-    mov eax, 3000 ;Set to 1 second for debugging, change to 3 later
-    call Delay
+    ;mov eax, 3000 ;Set to 1 second for debugging, change to 3 later
+    ;call Delay
     ret
-WelcomeScreen ENDP
+displayWelcome ENDP
 
 ;---------------------------------------
 ;Menu Screen Proc
 ;---------------------------------------
-MenuScreen PROC
+displayMenu PROC
 
     mov eax, NUM_COLS
     sub eax, 13 ; Length of "1. Start Game"
@@ -199,7 +307,10 @@ MenuScreen PROC
     call WaitMsg
 
     ret
-MenuScreen ENDP
+displayMenu ENDP
+
+;---------------------------------------
+;Menu Selection Proc
 
 ;---------------------------------------
 ;Create Level 1
@@ -301,18 +412,6 @@ CreateLevel1 PROC
     call crlf
     ret
 CreateLevel1 ENDP   
-
-;---------------------------------------
-;Initialize Grid
-;---------------------------------------
-LoadMazeToGrid PROC
-    lea esi, maze1          ; Start with the first maze row, contiguous memory so dont need to change maze
-    lea edi, grid           ; Point to the start of the grid
-    mov ecx, NUM_ROWS * NUM_COLS       ; Loop over each row
-
-    ret
-LoadMazeToGrid ENDP
-
 
 END main
 
