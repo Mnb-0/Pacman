@@ -8,6 +8,8 @@ INCLUDELIb winmm.lib
 NUM_COLS = 120
 NUM_ROWS = 30
 
+
+
 TITLE MASM PlaySound
 
 PlaySound PROTO,
@@ -122,8 +124,8 @@ GameStateHandler db 1                         ; Game state handler (e.g., paused
 ;----------------------------------------
 ; Player Position and Status
 ;----------------------------------------
-xPos           db 0                            ; Player X position
-yPos           db 0                            ; Player Y position
+xPos           db 2                            ; Player X position
+yPos           db 2                            ; Player Y position
 playerStatus   db 1                            ; Player status (1 = alive, 0 = dead)
 inputChar      db ?                            ; Last input character
 
@@ -131,55 +133,57 @@ inputChar      db ?                            ; Last input character
 ; Ghost Positions (Initial)
 ;----------------------------------------
 ; Level 1 Ghost Positions
-xG1            DB 10
-yG1            DB 10
-xG2            DB 10
-yG2            DB 10
+xG1            DB 62
+yG1            DB 15
+xG2            DB 62
+yG2            DB 15
 
 ; Level 2 Ghost Positions
-xG3            DB 10
-yG3            DB 10
+xG3            DB 62
+yG3            DB 15
 
 ; Level 3 Ghost Positions
-xG4            DB 10
-yG4            DB 10
-xG5            DB 10
-yG5            DB 10
+xG4            DB 62
+yG4            DB 15
+xG5            DB 62
+yG5            DB 15
         
 ;----------------------------------------
-;Maze Level 1
+; Maze Level 1
 ;----------------------------------------
-maze1  db "------------------------------------------------------------------------------------------------------------------------",0
-maze2  db "|.................#####..........................................................................#####.................|",0
-maze3  db "|.................#####..........................................................................#####.................|",0
-maze4  db "|.................#####..........................................................................#####.................|",0
-maze5  db "|.................#####..........................................................................#####.................|",0
-maze6  db "|.................#####..........................................................................#####.................|",0
-maze7  db "|......................................................................................................................|",0
-maze8  db "|......................................................................................................................|",0
-maze9  db "|..................##............................##.......................##........................##.................|",0
-maze10 db "|..................##.##########################.##.......................##.######################.##.................|",0
-maze11 db "|..................##............................##.......................##........................##.................|",0
-maze12 db "|......................................................................................................................|",0
-maze13 db "|......................................................##          ##..................................................|",0
-maze14 db "|......................................................##          ##..................................................|",0
-maze15 db "|......................................................##   GHOST  ##..................................................|",0
-maze16 db "|......................................................##   HOUSE  ##..................................................|",0
-maze17 db "|......................................................##          ##..................................................|",0
-maze18 db "|......................................................##############..................................................|",0
-maze19 db "|......................................................................................................................|",0
-maze20 db "|..................##............................##.......................##........................##.................|",0
-maze21 db "|..................##.##########################.##.......................##.######################.##.................|",0
-maze22 db "|..................##............................##.......................##........................##.................|",0
-maze23 db "|.............................................................#........................................................|",0
-maze24 db "|.............................................................#........................................................|",0
-maze25 db "|.................#####.......................................#.............................#####......................|",0
-maze26 db "|.................#####.......................................#.............................#####......................|",0
-maze27 db "|.................#####.......................................#.............................#####......................|",0
-maze28 db "|.................#####.......................................#.............................#####......................|",0
-maze29 db "|.................#####.....................................................................#####......................|",0
-maze30 db "------------------------------------------------------------------------------------------------------------------------",0
+maze1  db "------------------------------------------------------------------------------------------------------------------------", 0
+maze2  db "|.................#####..........................................................................#####.................|", 0
+maze3  db "|.................#####..........................................................................#####.................|", 0
+maze4  db "|.................#####..........................................................................#####.................|", 0
+maze5  db "|.................#####..........................................................................#####.................|", 0
+maze6  db "|.................#####..........................................................................#####.................|", 0
+maze7  db "|......................................................................................................................|", 0
+maze8  db "|......................................................................................................................|", 0
+maze9  db "|..................##............................##.......................##........................##.................|", 0
+maze10 db "|..................##.##########################.##.......................##.######################.##.................|", 0
+maze11 db "|..................##............................##.......................##........................##.................|", 0
+maze12 db "|......................................................................................................................|", 0
+maze13 db "|......................................................##          ##..................................................|", 0
+maze14 db "|......................................................##          ##..................................................|", 0
+maze15 db "|......................................................##          ##..................................................|", 0
+maze16 db "|......................................................##          ##..................................................|", 0
+maze17 db "|......................................................##          ##..................................................|", 0
+maze18 db "|......................................................##############..................................................|", 0
+maze19 db "|......................................................................................................................|", 0
+maze20 db "|..................##............................##.......................##........................##.................|", 0
+maze21 db "|..................##.##########################.##.......................##.######################.##.................|", 0
+maze22 db "|..................##............................##.......................##........................##.................|", 0
+maze23 db "|.............................................................#........................................................|", 0
+maze24 db "|.............................................................#........................................................|", 0
+maze25 db "|.................#####.......................................#.............................#####......................|", 0
+maze26 db "|.................#####.......................................#.............................#####......................|", 0
+maze27 db "|.................#####.......................................#.............................#####......................|", 0
+maze28 db "|.................#####.......................................#.............................#####......................|", 0
+maze29 db "|.................#####.....................................................................#####......................|", 0
+maze30 db "------------------------------------------------------------------------------------------------------------------------", 0
 
+
+level1 DWORD OFFSET maze1, OFFSET maze2, OFFSET maze3, OFFSET maze4, OFFSET maze5, OFFSET maze6, OFFSET maze7, OFFSET maze8, OFFSET maze9, OFFSET maze10, OFFSET maze11, OFFSET maze12, OFFSET maze13, OFFSET maze14, OFFSET maze15, OFFSET maze16, OFFSET maze17, OFFSET maze18, OFFSET maze19, OFFSET maze20, OFFSET maze21, OFFSET maze22, OFFSET maze23, OFFSET maze24, OFFSET maze25, OFFSET maze26, OFFSET maze27, OFFSET maze28, OFFSET maze29, OFFSET maze30
 
 .code
 main PROC
@@ -187,38 +191,44 @@ main PROC
     ;Initialize the console
     call Clrscr
 
+    ;Welcome Screen
     call displayWelcome
+
+Menu:
+    call displayMenu
+    call ReadChar
+    cmp al, '1'
+    je StartGame
+    cmp al, '2'
+    je SelectLevel
+    cmp al, '3'
+    je Instructions
+    cmp al, '4'
+    je HighScores
+    cmp al, '5'
+    jmp ExitGame
+    jmp Menu ; fallback
+
+StartGame:
+    call Clrscr
+    call CreateLevel1
+    call readchar
+    ;call GameLoop
+    call ClrScr
+    jmp Menu
+
+SelectLevel:
+    ; Future implementation
+    jmp Menu
+
+Instructions:
+    call Clrscr
     call displayInstructions
-    ;call waitmsg
+    jmp Menu
 
-    Menu:
-        call displayMenu
-        call ReadChar
-        
-
-
-        ;;cmp al, '1':
-        ;;je StartGame
-        ;cmp al, '2':
-        ;jne m2
-        ;call Clrscr
-        ;;call levelSelector
-        ;jmp Menu
-        ;m2:
-        ;cmp al, '3':
-        ;jne m3
-        ;call Clrscr
-        ;;call displayInstructions
-        ;jmp Menu
-        ;m3:
-        ;cmp al, '4':
-        ;jne m4
-        ;call Clrscr
-        ;;call displayHighScores
-        ;jmp Menu
-        ;m4:
-        ;cmp al, '5':
-        ;jmp ExitGame
+HighScores:
+    ; Future implementation
+    jmp Menu
 
 
 
@@ -303,33 +313,40 @@ displayWelcome ENDP
 ;Display Instructions Proc
 ;---------------------------------------
 displayInstructions PROC
+    LOCAL tempCol:BYTE
+    LOCAL tempRow:BYTE
 
-    ;Find center
+    ; Find center column
     mov eax, NUM_COLS
-    sub eax, 13 ; Length of "Instructions"
-    sub eax, 5 ;Adjust
-    mov edx, 0
+    sub eax, 13         ; Length of "Instructions"
+    sub eax, 5          ; Adjust
+    xor edx, edx
     mov ecx, 2
     div ecx
-    mov colCenter, al
-    ;Move row center up by 2
+    mov tempCol, al
+
+    ; Adjust row center up by 2
     movzx eax, rowCenter
     sub eax, 2
-    mov rowCenter, al
-    ;No need to recalculate middle row
-    mov dl, colCenter
-    mov dh, rowCenter
+    mov tempRow, al
+
+    ; Move cursor to calculated center
+    mov dl, tempCol
+    mov dh, tempRow
     call GoToXY
+
+    ; Print instructions
     call Crlf
     mwrite "Instructions: Use arrow keys to move Pacman. Eat all the dots and avoid the ghosts!"
+
+    ; Wait message two lines below
     mov dl, 0
-    mov dh, rowCenter
+    mov dh, tempRow
     add dh, 2
     call GoToXY
     call WaitMsg
-    call clrscr
+    call Clrscr
     ret
-
 displayInstructions ENDP
 
 
@@ -337,51 +354,63 @@ displayInstructions ENDP
 ;Menu Screen Proc
 ;---------------------------------------
 displayMenu PROC
+    LOCAL tempCol:BYTE
+    LOCAL tempRow:BYTE
 
     mov eax, NUM_COLS
     sub eax, 13 ; Length of "1. Start Game"
-    sub eax, 5 ;Adjust 
+    sub eax, 5  ; Adjust 
     mov ecx, 2
-    mov edx, 0
+    xor edx, edx
     div ecx
-    mov colCenter, al
-    ;Move row center up by 2
+    mov tempCol, al
+
     movzx eax, rowCenter
     sub eax, 2
-    mov rowCenter, al
-    ;No need to recalculate middle row
-    mov dl, colCenter
-    mov dh, rowCenter
+    mov tempRow, al
+
+    ; Menu Line 1
+    mov dl, tempCol
+    mov dh, tempRow
     call GoToXY
     mov edx, offset menuMsg
     call writestring
-    mov dl, colCenter
-    mov dh, rowCenter
-    add dh,1
+
+    ; Menu Line 2
+    mov dl, tempCol
+    mov dh, tempRow
+    add dh, 1
     call GoToXY
     mov edx, offset menuMsg2
     call writestring
-    mov dl, colCenter
-    mov dh, rowCenter
-    add dh,2
+
+    ; Menu Line 3
+    mov dl, tempCol
+    mov dh, tempRow
+    add dh, 2
     call GoToXY
     mov edx, offset menuMsg3
     call writestring
-    mov dl, colCenter
-    mov dh, rowCenter
-    add dh,3
+
+    ; Menu Line 4
+    mov dl, tempCol
+    mov dh, tempRow
+    add dh, 3
     call GoToXY
     mov edx, offset menuMsg4
     call writestring
-    mov dl, colCenter
-    mov dh, rowCenter
-    add dh,4
+
+    ; Menu Line 5
+    mov dl, tempCol
+    mov dh, tempRow
+    add dh, 4
     call GoToXY
     mov edx, offset menuMsg5
     call writestring
 
     ret
 displayMenu ENDP
+
 
 ;---------------------------------------
 ;Menu Selection Proc
@@ -390,110 +419,40 @@ displayMenu ENDP
 ;Create Level 1
 ;---------------------------------------
 CreateLevel1 PROC
-
-    mov dx, 0
+    ; Reset cursor to top-left
+    mov edx, 0
     call GoToXY
     call Clrscr
-    mov edx, offset maze1
-    call writestring
-    call crlf
-    mov edx, offset maze2
-    call writestring
-    call crlf
-    mov edx, offset maze3
-    call writestring
-    call crlf
-    mov edx, offset maze4
-    call writestring
-    call crlf
-    mov edx, offset maze5
-    call writestring
-    call crlf
-    mov edx, offset maze6
-    call writestring
-    call crlf
-    mov edx, offset maze7
-    call writestring
-    call crlf
-    mov edx, offset maze8
-    call writestring
-    call crlf
-    mov edx, offset maze9
-    call writestring
-    call crlf
-    mov edx, offset maze10
-    call writestring
-    call crlf
-    mov edx, offset maze11
-    call writestring
-    call crlf
-    mov edx, offset maze12
-    call writestring
-    call crlf
-    mov edx, offset maze13
-    call writestring
-    call crlf
-    mov edx, offset maze14
-    call writestring
-    call crlf
-    mov edx, offset maze15
-    call writestring
-    call crlf
-    mov edx, offset maze16
-    call writestring
-    call crlf
-    mov edx, offset maze17
-    call writestring
-    call crlf
-    mov edx, offset maze18
-    call writestring
-    call crlf
-    mov edx, offset maze19
-    call writestring
-    call crlf
-    mov edx, offset maze20
-    call writestring
-    call crlf
-    mov edx, offset maze21
-    call writestring
-    call crlf
-    mov edx, offset maze22
-    call writestring
-    call crlf
-    mov edx, offset maze23
-    call writestring
-    call crlf
-    mov edx, offset maze24
-    call writestring
-    call crlf
-    mov edx, offset maze25
-    call writestring
-    call crlf
-    mov edx, offset maze26
-    call writestring
-    call crlf
-    mov edx, offset maze27
-    call writestring
-    call crlf
-    mov edx, offset maze28
-    call writestring
-    call crlf
-    mov edx, offset maze29
-    call writestring
-    call crlf
-    mov edx, offset maze30
-    call writestring
-    call crlf
+
+    mov ecx, 30               ; Number of rows
+    mov esi, OFFSET level1    ; Address of the maze array
+
+print_loop:
+    lodsd                     ; Load DWORD [esi] into eax, increment esi by 4
+    mov edx, eax              ; edx = offset to maze line
+    call WriteString
+    call Crlf
+    loop print_loop
+
     ret
-CreateLevel1 ENDP   
+CreateLevel1 ENDP
 
 ;---------------------------------------
 ;Draw Functions
 ;---------------------------------------
 
-DrawLevel PROC
+DrawBlock PROC
 
-DrawLevel ENDP
+DrawBlock ENDP
+
+DrawPellet PROC
+
+DrawPellet ENDP
+
+DrawGhost PROC
+DrawGhost ENDP
+
+DrawPacman PROC
+DrawPacman ENDP
 
 END main
-
